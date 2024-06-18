@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60">
     <title>IHOME 数据</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
@@ -182,9 +183,14 @@
             displayMobileData(data3);
         }
 
-        // Update data every minute
-        setInterval(updateData, 60000);
-        // Initial data load
+
+// 设置全局刷新函数
+function refreshPage() {
+            window.location.reload();
+        }
+
+// 调用刷新函数，600000 毫秒为5分钟
+        setTimeout(refreshPage, 300000);
         updateData();
 
         // Function to show/hide tables based on screen size
@@ -204,9 +210,14 @@
             }
         }
 
+
+
         // Check on load and resize
         window.onload = toggleTables;
         window.onresize = toggleTables;
+
+                // Update data every minute
+
     </script>
     <style>
 body {
