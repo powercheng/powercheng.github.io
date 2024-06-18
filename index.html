@@ -4,16 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IHOME 客户数据</title>
+    <title>IHOME 数据</title>
 </head>
 
 <body>
     <div class="container">
-        <h1>IHOME 客户数据</h1>
         <div id="table-container">
+            <h1 id="title1"> IHOME 客户数据</h1>
             <table id="data-table">
                 <!-- Table data will be inserted here by JavaScript -->
             </table>
+            <h1>生产订单数据</h1>
+            <div id="extra-table-container" class="scrollable-table">
+                
+                <table id="extra-data-table">
+                    <!-- Extra table data will be inserted here by JavaScript -->
+                    <thead>
+                        <!-- Table headers will be dynamically inserted here by JavaScript -->
+                    </thead>
+                    <tbody>
+                        <!-- Table content will be dynamically inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
             <div id="mobile-table-container" class="hidden">
                 <!-- Mobile table data will be inserted here by JavaScript -->
             </div>
@@ -23,10 +36,25 @@
     <script>
         const API_KEY = 'AIzaSyCCyOfJWGR-zWiFoa0h8s4k4rNgoGyfYbk';  // Replace with your Google Sheets API key
         const SPREADSHEET_ID = '148KNi1rQU4DuAg7ogoN1NuXVrl83zeJdYlEKKdmrLqc';  // Replace with your Google Sheets ID
-        const RANGE = 'Sheet1!I1:Q5';  // Adjust the range according to your sheet
+        const STATISTICRANGE = 'Sheet1!L2:T6';  // Adjust the range according to your sheet
+        const ORDERRANGE = 'Sheet1!A9:I209';
+        const TTILERANGE = 'Sheet1!L1';
+        const title = 'IHOME 客户数据';
 
-        async function fetchData() {
-            const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}?key=${API_KEY}`);
+        async function fetchStatisticData() {
+            const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${STATISTICRANGE}?key=${API_KEY}`);
+            const data = await response.json();
+            return data.values;
+        }
+
+        async function fetchOrderData() {
+            const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${ORDERRANGE}?key=${API_KEY}`);
+            const data = await response.json();
+            return data.values.filter(row => row[2] === 'producing');
+        }
+
+        async function fetchTitle() {
+            const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${TTILERANGE}?key=${API_KEY}`);
             const data = await response.json();
             console.log(data);
             return data.values;
@@ -41,6 +69,10 @@
                 return;
             }
 
+
+            // Display title
+            document.getElementById('title1').innerHTML = title;
+
             // Create table headers
             let headerRow = '<tr>';
             for (let header of data[0]) {
@@ -58,47 +90,64 @@
                 row += '</tr>';
                 table.insertAdjacentHTML('beforeend', row);
             }
-
-                      // Display mobile table
-                      displayMobileData(data);
         }
 
-        function displayMobileData(data) {
-            const container = document.getElementById('mobile-table-container');
-            container.innerHTML = ''; // Clear existing data
-
+        function displayExtraTable(data) {
+            const extraTable = document.getElementById('extra-data-table');
+            const thead = extraTable.querySelector('thead');
+            const tbody = extraTable.querySelector('tbody');
+            thead.innerHTML = ''; // Clear existing header data
+            tbody.innerHTML = ''; // Clear existing body data
             if (data.length === 0) {
-                container.innerHTML = '<div>No data found</div>';
-                return;
-            }
-            table = document.getElementById('data-table');
-            table.innerHTML = ''; // Clear existing data
-
-            if (data.length === 0) {
-                table.innerHTML = '<tr><td>No data found</td></tr>';
+                extraTable.innerHTML = '<tr><td>No data found</td></tr>';
                 return;
             }
 
-            // Create table headers
+            // Create table headers for extra table
+            const headers = ['ID', '客户姓名', '销售门店', '订单类型', '下单日期', '交货日期'];
             let headerRow = '<tr>';
-            for (let header of data[0]) {
+            for (let header of headers) {
                 headerRow += `<th>${header}</th>`;
             }
             headerRow += '</tr>';
-            table.insertAdjacentHTML('beforeend', headerRow);
+            thead.insertAdjacentHTML('beforeend', headerRow);
 
             // Create table rows
-            for (let i = 1; i < data.length; i++) {
+            for (let i = 0; i < data.length; i++) {
                 let row = '<tr>';
-                for (let cell of data[i]) {
-                    row += `<td>${cell}</td>`;
-                }
+                row += `<td>${data[i][0]}</td>`; // ID
+                row += `<td>${data[i][1]}</td>`; // 客户姓名
+                row += `<td>${data[i][3]}</td>`; // 销售门店
+                row += `<td>${data[i][8]}</td>`; // 订单类型
+                row += `<td>${data[i][5]}</td>`; // 下单日期
+                row += `<td>${data[i][6]}</td>`; // 交货日期
                 row += '</tr>';
-                table.insertAdjacentHTML('beforeend', row);
+                tbody.insertAdjacentHTML('beforeend', row);
             }
 
-            // Display mobile table
-            displayMobileData(data);
+            autoScrollTable();
+        }
+        function autoScrollTable() {
+            const container = document.getElementById('extra-table-container');
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+            let scrollTop = container.scrollTop;
+            const scrollStep = 1; // Adjust scrolling speed if needed
+
+           // Define interval to continuously scroll the table
+           const scrollInterval = setInterval(function() {
+                scrollTop += scrollStep;
+                container.scrollTop = scrollTop;
+
+                // Check if reached the bottom of the table
+                if (scrollTop >= scrollHeight - clientHeight) {
+                    clearInterval(scrollInterval);
+                    setTimeout(function() {
+                        container.scrollTop = 0; // Reset to top
+                        autoScrollTable(); // Restart scrolling
+                    }, 2000); // Wait 2 seconds before restarting scrolling
+                }
+            }, 50); // Adjust interval timing if needed, lower value means faster scrolling
         }
 
         function displayMobileData(data) {
@@ -123,11 +172,13 @@
             }
         }
 
-
-
         async function updateData() {
-            const data = await fetchData();
-            displayData(data);
+            const data1 = await fetchStatisticData();
+            displayData(data1);
+            const data2 = await fetchOrderData();
+            displayExtraTable(data2);
+            const data3 = await fetchStatisticData();
+            displayMobileData(data3);
         }
 
         // Update data every minute
@@ -139,12 +190,16 @@
         function toggleTables() {
             const desktopTable = document.getElementById('data-table');
             const mobileContainer = document.getElementById('mobile-table-container');
+            const extraTableContainer = document.getElementById('extra-table-container');
+
             if (window.innerWidth <= 800) {
                 desktopTable.classList.add('hidden');
                 mobileContainer.classList.remove('hidden');
+                extraTableContainer.classList.add('hidden');
             } else {
                 desktopTable.classList.remove('hidden');
                 mobileContainer.classList.add('hidden');
+                extraTableContainer.classList.remove('hidden');
             }
         }
 
@@ -152,133 +207,175 @@
         window.onload = toggleTables;
         window.onresize = toggleTables;
     </script>
-    <style>body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        text-align: center;
-        min-height: 100vh;
-    }
-    
-    .container {
-        background: white;
-        padding: 20px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.2);
-        border-radius: 8px;
-        max-width: 90%;
-    }
-    
-    h1 {
-        margin-bottom: 20px;
-        font-size: 3em;
-        color: #333;
-    }
-    
-    #update-time {
-        font-size: 1.2em;
-        color: #777;
-        margin-bottom: 20px;
-    }
-    
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        font-size: 1.5em;
-    }
-    
-    th, td {
-        padding: 20px;
-        border: 1px solid #ddd;
-        text-align: left;
-    }
-    
-    th {
-        background-color: #4CAF50;
-        color: white;
-        text-align: center;
-    }
-    
-    td {
-        background-color: #f9f9f9;
-        text-align: center;
-    }
-    
-    .hidden {
-        display: none;
-    }
-    
-    #mobile-table-container {
-        display: none;
-        width: 100%;
-    }
-    
-    .mobile-card {
-        background-color: #fff;
-        margin-bottom: 20px;
-        padding: 20px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        border-radius: 8px;
-        text-align: left;
-    }
-    
-    .mobile-card h2 {
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px;
-        border-radius: 4px;
-        margin: -20px -20px 10px -20px;
-        text-align: center;
-    }
-    
-    .mobile-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 0;
-        border-bottom: 1px solid #ddd;
-    }
-    
-    .mobile-row:last-child {
-        border-bottom: none;
-    }
-    
-    .mobile-label {
-        flex: 1;
-        text-align: left;
-        margin-right: 10px;
-        font-weight: bold;
-    }
-    
-    .mobile-value {
-        flex: 1;
-        text-align: right;
-        margin-left: 10px;
-    }
-    
-    @media (max-width: 800px) {
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        
+        }
+
         .container {
-            width: 100%;
-            padding: 10px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            max-width: 90%;
         }
-    
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 3em;
+            color: #333;
+        }
+
+        #update-time {
+            font-size: 1.2em;
+            color: #777;
+            margin-bottom: 20px;
+        }
+
         table {
-            font-size: 1em;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 1.5em;
         }
-    
-        th, td {
-            padding: 10px;
+
+        th,
+        td {
+            padding: 20px;
+            border: 1px solid #ddd;
+            text-align: left;
         }
-    
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+        }
+
+        td {
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
         #mobile-table-container {
-            display: block;
+            display: none;
+            width: 100%;
         }
-    }
-    
+
+        .mobile-card {
+            background-color: #fff;
+            margin-bottom: 20px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .mobile-card h2 {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: -20px -20px 10px -20px;
+            text-align: center;
+        }
+
+        .mobile-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .mobile-row:last-child {
+            border-bottom: none;
+        }
+
+        .mobile-label {
+            flex: 1;
+            text-align: left;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .mobile-value {
+            flex: 1;
+            text-align: right;
+            margin-left: 10px;
+        }
+
+        #extra-table-container {
+            margin-top: 40px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .scrollable-table {
+            width: 100%;
+            /* Ensure the table container takes full width */
+        }
+
+        #extra-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+
+
+        #extra-table-container thead th {
+    position: sticky;
+    top: 0;
+    background: #4CAF50;
+    color: white;
+    text-align: center;
+    z-index: 1;
+}
+
+#extra-table-container tbody td {
+    background-color: #f9f9f9;
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+
+        @media (max-width: 800px) {
+            .container {
+                width: 100%;
+                padding: 10px;
+            }
+
+            table {
+                font-size: 1em;
+            }
+
+            th,
+            td {
+                padding: 10px;
+            }
+
+            #mobile-table-container {
+                display: block;
+            }
+
+            #extra-table-container {
+                display: none;
+            }
+        }
     </style>
 </body>
 
